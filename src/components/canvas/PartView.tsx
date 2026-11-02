@@ -1,6 +1,6 @@
 import type { PointerEvent, ReactElement } from 'react';
 import type { Part, PartDef, PinDef, PinValues } from '../../engine/types';
-import { aluOperationName, formatBinary, getPins, mask, pinKey } from '../../engine/parts';
+import { aluOperationName, counterModulo, formatBinary, getPins, mask, pinKey } from '../../engine/parts';
 
 export interface DraftInfo {
   partId: string;
@@ -346,37 +346,53 @@ function PartBody({
     case 'counter4': {
       const q = values[pinKey(part.id, 'q')] ?? 0;
       const tc = values[pinKey(part.id, 'tc')] ?? 0;
+      const modulo = counterModulo(part);
       return (
         <g>
-          <rect className="part-body seq-body" x="8" y="8" width="160" height="128" rx="10" />
-          <text className="part-title" x="88" y="24" textAnchor="middle">
+          <rect className="part-body seq-body" x="8" y="8" width="168" height="168" rx="10" />
+          <text className="part-title" x="92" y="24" textAnchor="middle">
             4-BIT-COUNTER
           </text>
-          <text className="pin-label" x="18" y="36">
+          <text className="pin-label" x="18" y="33">
             CLK
           </text>
-          <text className="pin-label" x="18" y="76">
+          <path className="clock-notch" d="M10 22 L17 28 L10 34" />
+          <text className="pin-label" x="18" y="68">
+            D
+          </text>
+          <text className="pin-width-inline" x="28" y="68">
+            4
+          </text>
+          <text className="pin-label" x="18" y="100">
+            LOAD
+          </text>
+          <text className="pin-label" x="18" y="132">
             EN
           </text>
-          <text className="pin-label" x="18" y="116">
+          <text className="pin-label" x="18" y="164">
             CLR
           </text>
-          <path className="clock-notch" d="M10 26 L17 32 L10 38" />
-          <text className="pin-label right" x="162" y="52" textAnchor="end">
+          <text className="pin-label right" x="170" y="48" textAnchor="end">
             Q
           </text>
-          <text className="pin-label right" x="162" y="108" textAnchor="end">
+          <text className="pin-width-inline" x="157" y="48" textAnchor="end">
+            4
+          </text>
+          <text className="pin-label right" x="170" y="140" textAnchor="end">
             TC={tc}
           </text>
-          <rect className="value-chip wide" x="48" y="52" width="84" height="44" rx="8" />
-          <text className="chip-value bus" x="90" y="73" textAnchor="middle">
+          <rect className="value-chip wide" x="46" y="50" width="88" height="46" rx="8" />
+          <text className="chip-value bus" x="90" y="72" textAnchor="middle">
             {formatBinary(q, 4)}
           </text>
-          <text className="chip-decimal" x="90" y="88" textAnchor="middle">
+          <text className="chip-decimal" x="90" y="87" textAnchor="middle">
             = {q}
           </text>
-          <line className="gate-lead" x1="168" y1="48" x2="176" y2="48" />
-          <line className="gate-lead" x1="168" y1="104" x2="176" y2="104" />
+          <text className="micro-label" x="90" y="112" textAnchor="middle">
+            MOD {modulo}
+          </text>
+          <line className="gate-lead" x1="176" y1="44" x2="184" y2="44" />
+          <line className="gate-lead" x1="176" y1="136" x2="184" y2="136" />
         </g>
       );
     }
@@ -484,6 +500,78 @@ function PartBody({
             = {y}
           </text>
           <line className="gate-lead" x1="148" y1="52" x2="168" y2="52" />
+        </g>
+      );
+    }
+    case 'demux2': {
+      const select = values[pinKey(part.id, 's')] ?? 0;
+      const y0 = values[pinKey(part.id, 'y0')] ?? 0;
+      const y1 = values[pinKey(part.id, 'y1')] ?? 0;
+      return (
+        <g>
+          <path className="part-body arith-body" d="M8 8 H88 L120 34 V78 L88 104 H8 Z" />
+          <text className="part-title" x="64" y="22" textAnchor="middle">
+            1:2 DEMUX
+          </text>
+          <text className="micro-label" x="16" y="28">
+            D
+          </text>
+          <text className="micro-label" x="16" y="68">
+            S
+          </text>
+          <text className="micro-label" x="112" y="38" textAnchor="end">
+            Y0={y0}
+          </text>
+          <text className="micro-label" x="112" y="78" textAnchor="end">
+            Y1={y1}
+          </text>
+          <text className="micro-label" x="64" y="56" textAnchor="middle">
+            {select ? 'D → Y1' : 'D → Y0'}
+          </text>
+          <line className="gate-lead" x1="120" y1="34" x2="136" y2="34" />
+          <line className="gate-lead" x1="120" y1="74" x2="136" y2="74" />
+        </g>
+      );
+    }
+    case 'demux4': {
+      const select = values[pinKey(part.id, 's')] ?? 0;
+      const y0 = values[pinKey(part.id, 'y0')] ?? 0;
+      const y1 = values[pinKey(part.id, 'y1')] ?? 0;
+      return (
+        <g>
+          <rect className="part-body arith-body" x="8" y="8" width="144" height="120" rx="10" />
+          <text className="part-title" x="80" y="22" textAnchor="middle">
+            1:2 DEMUX · 4 BIT
+          </text>
+          <text className="micro-label" x="16" y="36">
+            D
+          </text>
+          <text className="pin-width-inline" x="27" y="36">
+            4
+          </text>
+          <text className="micro-label" x="16" y="80">
+            S
+          </text>
+          <text className="micro-label" x="144" y="44" textAnchor="end">
+            Y0
+          </text>
+          <text className="pin-width-inline" x="130" y="44" textAnchor="end">
+            4
+          </text>
+          <text className="micro-label" x="144" y="100" textAnchor="end">
+            Y1
+          </text>
+          <text className="pin-width-inline" x="130" y="100" textAnchor="end">
+            4
+          </text>
+          <text className="micro-label" x="80" y="62" textAnchor="middle">
+            {select ? 'D → Y1' : 'D → Y0'}
+          </text>
+          <text className="micro-label" x="80" y="108" textAnchor="middle">
+            S={select} · {formatBinary(select ? y1 : y0, 4)}
+          </text>
+          <line className="gate-lead" x1="152" y1="40" x2="168" y2="40" />
+          <line className="gate-lead" x1="152" y1="96" x2="168" y2="96" />
         </g>
       );
     }

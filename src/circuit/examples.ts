@@ -129,15 +129,53 @@ function counterExample(): Circuit {
   const b = new CircuitBuilder('4-Bit-Binärzähler');
   const clk = b.add('clock', 70, 154);
   const enable = b.add('const1', 70, 210, { label: 'EN' });
-  const clear = b.add('input', 70, 290, { label: 'CLR', value: 0 });
+  const load = b.add('const0', 70, 270, { label: 'LOAD' });
+  const data = b.add('input', 70, 330, { label: 'D', bits: 4, value: 0 });
+  const clear = b.add('input', 70, 430, { label: 'CLR', value: 0 });
   const counter = b.add('counter4', 360, 150);
-  const q = b.add('output', 680, 170, { label: 'Q', bits: 4 });
-  const tc = b.add('output', 680, 226, { label: 'TC' });
+  const q = b.add('output', 680, 166, { label: 'Q', bits: 4 });
+  const tc = b.add('output', 680, 258, { label: 'TC' });
   b.link(clk, 'out', counter, 'clk');
   b.link(enable, 'out', counter, 'en');
+  b.link(load, 'out', counter, 'load');
+  b.link(data, 'out', counter, 'd');
   b.link(clear, 'out', counter, 'clr');
   b.link(counter, 'q', q, 'in');
   b.link(counter, 'tc', tc, 'in');
+  return b.build();
+}
+
+function moduloCounterExample(): Circuit {
+  const b = new CircuitBuilder('Modulo-10-Zähler mit Load');
+  const clk = b.add('clock', 70, 154);
+  const enable = b.add('const1', 70, 210, { label: 'EN' });
+  const data = b.add('input', 70, 280, { label: 'D', bits: 4, value: 3 });
+  const load = b.add('input', 70, 400, { label: 'LOAD', value: 0 });
+  const clear = b.add('input', 70, 500, { label: 'CLR', value: 0 });
+  const counter = b.add('counter4', 360, 150, { label: 'Modulo 10', modulo: 10 });
+  const q = b.add('output', 680, 166, { label: 'Q', bits: 4 });
+  const tc = b.add('output', 680, 258, { label: 'TC' });
+  b.link(clk, 'out', counter, 'clk');
+  b.link(enable, 'out', counter, 'en');
+  b.link(data, 'out', counter, 'd');
+  b.link(load, 'out', counter, 'load');
+  b.link(clear, 'out', counter, 'clr');
+  b.link(counter, 'q', q, 'in');
+  b.link(counter, 'tc', tc, 'in');
+  return b.build();
+}
+
+function demuxExample(): Circuit {
+  const b = new CircuitBuilder('1:2-Demultiplexer');
+  const data = b.add('input', 70, 110, { label: 'D', bits: 4, value: 10 });
+  const select = b.add('input', 70, 250, { label: 'S', value: 0 });
+  const demux = b.add('demux4', 360, 160);
+  const y0 = b.add('output', 680, 172, { label: 'Y0', bits: 4 });
+  const y1 = b.add('output', 680, 300, { label: 'Y1', bits: 4 });
+  b.link(data, 'out', demux, 'd');
+  b.link(select, 'out', demux, 's');
+  b.link(demux, 'y0', y0, 'in');
+  b.link(demux, 'y1', y1, 'in');
   return b.build();
 }
 
@@ -220,6 +258,20 @@ export const EXAMPLES: Example[] = [
     description: 'Ein Zähler mit Enable, asynchronem Clear und Terminal Count. Jede steigende Taktflanke zählt weiter.',
     hint: 'CLR auf 1 setzen setzt den Zähler sofort auf 0 zurück. TC wird bei 15 aktiv.',
     circuit: counterExample(),
+  },
+  {
+    id: 'counter-modulo',
+    name: 'Modulo-10-Zähler mit Load',
+    description: 'Ein Zähler mit Modulo 10 und parallelem Load: Er läuft 0…9 und beginnt danach wieder bei 0.',
+    hint: 'LOAD auf 1 setzen: Bei der nächsten steigenden Flanke übernimmt Q den Wert von D. TC wird bei 9 aktiv.',
+    circuit: moduloCounterExample(),
+  },
+  {
+    id: 'demux',
+    name: '1:2-Demultiplexer',
+    description: 'Der Demultiplexer leitet den 4-Bit-Eingang D je nach S auf Y0 oder Y1.',
+    hint: 'Schalte S um: Der aktive Ausgang wechselt, der andere wird 0.',
+    circuit: demuxExample(),
   },
   {
     id: 'mux4',

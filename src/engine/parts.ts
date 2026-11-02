@@ -172,15 +172,17 @@ const defs: PartDef[] = [
     symbol: 'CNT',
     category: 'sequential',
     description:
-      'Zählt bei jeder steigenden Taktflanke um 1, wenn EN aktiv ist. CLR setzt asynchron auf 0; TC meldet den Endstand 15.',
-    width: 176,
-    height: 144,
+      'Zählt bei steigender Taktflanke modulo MOD, wenn EN aktiv ist. LOAD übernimmt D parallel; CLR setzt asynchron auf 0. TC meldet den letzten Wert.',
+    width: 184,
+    height: 184,
     pins: [
-      { id: 'clk', name: 'CLK', dir: 'in', x: 0, y: 32, width: 1 },
-      { id: 'en', name: 'EN', dir: 'in', x: 0, y: 72, width: 1 },
-      { id: 'clr', name: 'CLR', dir: 'in', x: 0, y: 112, width: 1, optional: true },
-      { id: 'q', name: 'Q', dir: 'out', x: 176, y: 48, width: 4 },
-      { id: 'tc', name: 'TC', dir: 'out', x: 176, y: 104, width: 1 },
+      { id: 'clk', name: 'CLK', dir: 'in', x: 0, y: 28, width: 1 },
+      { id: 'd', name: 'D', dir: 'in', x: 0, y: 64, width: 4 },
+      { id: 'load', name: 'LOAD', dir: 'in', x: 0, y: 96, width: 1 },
+      { id: 'en', name: 'EN', dir: 'in', x: 0, y: 128, width: 1 },
+      { id: 'clr', name: 'CLR', dir: 'in', x: 0, y: 160, width: 1, optional: true },
+      { id: 'q', name: 'Q', dir: 'out', x: 184, y: 44, width: 4 },
+      { id: 'tc', name: 'TC', dir: 'out', x: 184, y: 136, width: 1 },
     ],
   },
   {
@@ -257,6 +259,36 @@ const defs: PartDef[] = [
       { id: 'b', name: 'B', dir: 'in', x: 0, y: 72, width: 4 },
       { id: 's', name: 'S', dir: 'in', x: 0, y: 112, width: 1 },
       { id: 'y', name: 'Y', dir: 'out', x: 168, y: 52, width: 4 },
+    ],
+  },
+  {
+    kind: 'demux2',
+    name: '1:2-Demultiplexer (1 Bit)',
+    symbol: 'DEMUX',
+    category: 'arithmetic',
+    description: 'Leitet D mit S=0 auf Y0 und mit S=1 auf Y1. Der jeweils andere Ausgang ist 0.',
+    width: 136,
+    height: 112,
+    pins: [
+      { id: 'd', name: 'D', dir: 'in', x: 0, y: 24, width: 1 },
+      { id: 's', name: 'S', dir: 'in', x: 0, y: 64, width: 1 },
+      { id: 'y0', name: 'Y0', dir: 'out', x: 136, y: 34, width: 1 },
+      { id: 'y1', name: 'Y1', dir: 'out', x: 136, y: 74, width: 1 },
+    ],
+  },
+  {
+    kind: 'demux4',
+    name: '1:2-Demultiplexer (4 Bit)',
+    symbol: 'DEMUX4',
+    category: 'arithmetic',
+    description: 'Leitet einen 4-Bit-Bus mit S=0 auf Y0 und mit S=1 auf Y1. Der jeweils andere Ausgang ist 0.',
+    width: 168,
+    height: 136,
+    pins: [
+      { id: 'd', name: 'D', dir: 'in', x: 0, y: 32, width: 4 },
+      { id: 's', name: 'S', dir: 'in', x: 0, y: 76, width: 1 },
+      { id: 'y0', name: 'Y0', dir: 'out', x: 168, y: 40, width: 4 },
+      { id: 'y1', name: 'Y1', dir: 'out', x: 168, y: 96, width: 4 },
     ],
   },
   {
@@ -338,6 +370,18 @@ export function mask(value: number, bits: number): number {
   if (bits <= 0) return 0;
   if (bits >= 31) return value >>> 0;
   return value & ((1 << bits) - 1);
+}
+
+export const COUNTER_DEFAULT_MODULO = 16;
+export const COUNTER_MODULO_OPTIONS = Array.from({ length: 15 }, (_, index) => index + 2);
+
+export function normalizeCounterModulo(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value)) return COUNTER_DEFAULT_MODULO;
+  return Math.max(2, Math.min(COUNTER_DEFAULT_MODULO, Math.round(value)));
+}
+
+export function counterModulo(part: Part): number {
+  return normalizeCounterModulo(part.modulo);
 }
 
 export const ALU_OPERATION_NAMES = [

@@ -13,11 +13,13 @@ import type {
 } from '../engine/types';
 import {
   PART_DEFS,
+  counterModulo,
   getPin,
   getPins,
   mask,
   nextInputLabel,
   nextOutputLabel,
+  normalizeCounterModulo,
 } from '../engine/parts';
 import { initialState, makeRuntime, simulate, stepClocks } from '../engine/simulate';
 import { cloneExample } from '../circuit/examples';
@@ -66,6 +68,7 @@ interface CircuitStore {
   movePart: (id: string, x: number, y: number) => void;
   updateLabel: (id: string, label: string) => void;
   updateBits: (id: string, bits: number) => void;
+  updateCounterModulo: (id: string, modulo: number) => void;
   setPartValue: (id: string, value: number) => void;
   toggleInput: (id: string) => void;
   addWire: (from: WireEnd, to: WireEnd) => boolean;
@@ -238,6 +241,30 @@ export const useCircuitStore = create<CircuitStore>()((set, get) => ({
       parts: state.circuit.parts.map((entry) => (entry.id === id ? nextPart : entry)),
     };
     const result = simulate(circuit, { runtime: state.runtime, pins: {} }, 'all');
+    set({
+      circuit,
+      pins: result.pins,
+      runtime: result.runtime,
+      warnings: result.warnings,
+      unstable: result.unstable,
+      past: pushPast(state.past, state.circuit),
+      future: [],
+    });
+  },
+
+  updateCounterModulo: (id, modulo) => {
+    const state = get();
+    const part = state.circuit.parts.find((entry) => entry.id === id);
+    if (!part || part.kind !== 'counter4') return;
+    const nextModulo = normalizeCounterModulo(modulo);
+    if (counterModulo(part) === nextModulo) return;
+    const circuit: Circuit = {
+      ...state.circuit,
+      parts: state.circuit.parts.map((entry) =>
+        entry.id === id ? { ...entry, modulo: nextModulo } : entry,
+      ),
+    };
+    const result = simulate(circuit, { runtime: state.runtime, pins: state.pins }, [id]);
     set({
       circuit,
       pins: result.pins,

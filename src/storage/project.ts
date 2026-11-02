@@ -1,4 +1,11 @@
-import { IO_BIT_OPTIONS, PART_DEFS, getPin, mask } from '../engine/parts';
+import {
+  IO_BIT_OPTIONS,
+  PART_DEFS,
+  counterModulo,
+  getPin,
+  mask,
+  normalizeCounterModulo,
+} from '../engine/parts';
 import type { Circuit, Part, PartKind, Wire } from '../engine/types';
 
 export const STORAGE_KEY = 'logiksim.project.v1';
@@ -71,6 +78,12 @@ function cleanPart(value: unknown): Part | null {
     part.value = mask(value, part.bits ?? 1);
   }
 
+  if (kind === 'counter4') {
+    part.modulo = normalizeCounterModulo(
+      typeof raw.modulo === 'number' && Number.isFinite(raw.modulo) ? raw.modulo : undefined,
+    );
+  }
+
   return part;
 }
 
@@ -84,6 +97,7 @@ export function serializeProject(circuit: Circuit): string {
       if (part.label?.trim()) clean.label = part.label.trim();
       if (part.kind === 'input' || part.kind === 'output') clean.bits = part.bits ?? 1;
       if (part.kind === 'input') clean.value = mask(part.value ?? 0, part.bits ?? 1);
+      if (part.kind === 'counter4') clean.modulo = counterModulo(part);
       return clean;
     }),
     wires: circuit.wires.map((wire) => ({

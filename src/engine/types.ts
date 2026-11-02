@@ -19,6 +19,8 @@ export type PartKind =
   | 'inc4'
   | 'mux2'
   | 'mux4'
+  | 'demux2'
+  | 'demux4'
   | 'alu4'
   | 'split4'
   | 'merge4';
@@ -60,6 +62,8 @@ export interface Part {
   value?: number;
   /** Bit width for input/output components. */
   bits?: number;
+  /** Modulus of the 4-bit counter (2..16). Defaults to 16. */
+  modulo?: number;
 }
 
 export interface WireEnd {
