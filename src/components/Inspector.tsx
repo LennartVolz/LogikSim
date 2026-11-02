@@ -419,7 +419,7 @@ export function Inspector() {
       : undefined;
 
   return (
-    <aside className="inspector">
+    <aside className="inspector" id="inspector-panel">
       <div className="panel-head">
         <span>Eigenschaften</span>
         <span className="panel-status">LIVE</span>

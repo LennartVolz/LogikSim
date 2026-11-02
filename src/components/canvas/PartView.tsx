@@ -53,7 +53,7 @@ function PinView({ part, pin, value, draft, onPinPointerDown }: PinViewProps) {
         x2={direction === 'in' ? 8 : pin.x}
         y2={pin.y}
       />
-      <circle className="pin-hit" cx={pin.x} cy={pin.y} r={11} />
+      <circle className="pin-hit" cx={pin.x} cy={pin.y} r={12.5} />
       <circle className="pin-dot" cx={pin.x} cy={pin.y} r={4.4} />
       {bus && (
         <text
@@ -192,6 +192,7 @@ function PartBody({
             }}
             onDoubleClick={(event) => event.stopPropagation()}
           >
+            <rect className="switch-hit" x="54" y="16" width="36" height="24" rx="8" fill="transparent" />
             {bits === 1 ? (
               <>
                 <rect

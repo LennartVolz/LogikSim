@@ -610,15 +610,27 @@ summary:focus-visible {
   line-height: 1.2;
 }
 
-.drag-dots {
+.drag-handle {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
   color: var(--faint);
-  opacity: 0;
-  font-size: 12px;
+  opacity: 0.7;
+  font-size: 15px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
   transition: 120ms;
 }
 
-.palette-item:hover .drag-dots {
-  opacity: 0.8;
+.drag-handle:hover {
+  color: var(--accent);
+  background: var(--panel-3);
+  opacity: 1;
 }
 
 .palette-empty {
@@ -3099,6 +3111,246 @@ kbd {
     grid-template-columns: 1fr;
   }
   .challenge-list {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Touch                                                               */
+/* ------------------------------------------------------------------ */
+
+.switch-hit {
+  fill: transparent;
+}
+
+.touch-drag-ghost {
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+  padding: 7px 11px 7px 7px;
+  border: 1px solid rgba(86, 200, 255, 0.55);
+  border-radius: 9px;
+  background: rgba(8, 18, 29, 0.96);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(86, 200, 255, 0.08);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.touch-drag-ghost .palette-symbol {
+  width: 24px;
+  height: 24px;
+}
+
+.mobile-touchbar {
+  display: none;
+}
+
+.mobile-scrim {
+  display: none;
+}
+
+.touchbar-btn {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: 120ms ease;
+}
+
+.touchbar-btn:hover,
+.touchbar-btn.active {
+  color: var(--text);
+  border-color: rgba(86, 200, 255, 0.32);
+  background: var(--accent-soft);
+}
+
+.touchbar-btn svg {
+  color: var(--accent);
+}
+
+.touchbar-palette {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .mobile-touchbar {
+    height: 52px;
+    flex: 0 0 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    background: #0a121c;
+    position: relative;
+    z-index: 48;
+  }
+
+  .mobile-scrim {
+    display: block;
+    position: fixed;
+    inset: 110px 0 0;
+    z-index: 44;
+    padding: 0;
+    border: 0;
+    background: rgba(3, 8, 14, 0.64);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+
+  .inspector {
+    display: flex;
+    position: fixed;
+    top: 110px;
+    right: 0;
+    bottom: 0;
+    width: min(320px, 88vw);
+    z-index: 46;
+    transform: translateX(105%);
+    visibility: hidden;
+    border-left: 1px solid var(--border);
+    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
+    transition: transform 180ms ease, visibility 180ms ease;
+  }
+
+  .workspace.mobile-panel-inspector .inspector {
+    transform: translateX(0);
+    visibility: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .palette {
+    display: flex;
+    position: fixed;
+    top: 110px;
+    left: 0;
+    bottom: 0;
+    width: min(292px, 88vw);
+    z-index: 46;
+    transform: translateX(-105%);
+    visibility: hidden;
+    border-right: 1px solid var(--border);
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+    transition: transform 180ms ease, visibility 180ms ease;
+  }
+
+  .workspace.mobile-panel-palette .palette {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .touchbar-palette {
+    display: inline-flex;
+  }
+
+  .palette-scroll,
+  .inspector-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .analysis-panel {
+    flex-basis: 196px;
+    height: 196px;
+  }
+
+  .mobile-touchbar {
+    justify-content: stretch;
+    gap: 4px;
+  }
+
+  .touchbar-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 0 6px;
+    font-size: 10.5px;
+  }
+}
+
+@media (max-width: 400px) {
+  .touchbar-btn {
+    gap: 4px;
+    padding: 0 3px;
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 720px) and (max-height: 620px) {
+  .analysis-panel {
+    flex-basis: 150px;
+    height: 150px;
+  }
+}
+
+@media (pointer: coarse) {
+  .toolbar-btn {
+    min-width: 36px;
+    min-height: 38px;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .palette-item {
+    min-height: 44px;
+  }
+
+  .palette-item:hover {
+    transform: none;
+  }
+
+  .drag-handle {
+    width: 32px;
+    height: 32px;
+    opacity: 0.85;
+    font-size: 16px;
+  }
+
+  .touchbar-btn {
+    min-height: 40px;
+  }
+
+  .bit-button {
+    min-height: 40px;
+  }
+
+  .sim-button {
+    min-height: 38px;
+  }
+
+  .zoom-controls .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .zoom-controls .zoom-value {
+    min-width: 52px;
+    height: 37px;
+  }
+
+  .canvas-hint {
     display: none;
   }
 }

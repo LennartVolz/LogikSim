@@ -3,7 +3,11 @@ import type { DragEvent, PointerEvent } from 'react';
 import type { Part, PinDef, Viewport, Wire } from '../../engine/types';
 import { PART_DEFS, getPin, pinPos } from '../../engine/parts';
 import { useCircuitStore } from '../../store/useCircuitStore';
-import { GRID_SIZE, MAX_ZOOM, MIN_ZOOM } from '../../editor/constants';
+import { GRID_SIZE, MIN_ZOOM } from '../../editor/constants';
+import { distance, midpoint, pinchViewport, zoomAtPoint } from '../../lib/gestures';
+import type { PinchStart } from '../../lib/gestures';
+import { PALETTE_DROP_EVENT } from '../../lib/paletteDrop';
+import type { PaletteDropDetail } from '../../lib/paletteDrop';
 import { roundedPath, wireRoute } from '../../lib/wireRouting';
 import type { Point } from '../../lib/wireRouting';
 import { PartView } from './PartView';
@@ -63,6 +67,8 @@ export function CircuitCanvas() {
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<DragState>(null);
+  const touchPointsRef = useRef(new Map<number, Point>());
+  const pinchRef = useRef<PinchStart | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [panning, setPanning] = useState(false);
   const [ghost, setGhost] = useState<Point | null>(null);
@@ -126,18 +132,100 @@ export function CircuitCanvas() {
       const pointerY = event.clientY - rect.top;
       const current = useCircuitStore.getState().viewport;
       const factor = Math.exp(-event.deltaY * 0.0014);
-      const zoom = clamp(current.zoom * factor, MIN_ZOOM, MAX_ZOOM);
-      const worldX = (pointerX - current.x) / current.zoom;
-      const worldY = (pointerY - current.y) / current.zoom;
-      setViewport({
-        x: pointerX - worldX * zoom,
-        y: pointerY - worldY * zoom,
-        zoom,
-      });
+      setViewport(zoomAtPoint(current, { x: pointerX, y: pointerY }, factor));
     };
     svg.addEventListener('wheel', handleWheel, { passive: false });
     return () => svg.removeEventListener('wheel', handleWheel);
   }, [setViewport]);
+
+  useEffect(() => {
+    const handlePaletteDrop = (event: Event) => {
+      const detail = (event as CustomEvent<PaletteDropDetail | undefined>).detail;
+      if (!detail) return;
+      const svg = svgRef.current;
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      if (
+        detail.clientX < rect.left ||
+        detail.clientX > rect.right ||
+        detail.clientY < rect.top ||
+        detail.clientY > rect.bottom
+      ) {
+        return;
+      }
+      const def = PART_DEFS[detail.kind];
+      if (!def) return;
+      const world = worldPoint(detail.clientX, detail.clientY);
+      placePart(detail.kind, world.x - def.width / 2, world.y - def.height / 2);
+      setGhost(null);
+    };
+    window.addEventListener(PALETTE_DROP_EVENT, handlePaletteDrop);
+    return () => window.removeEventListener(PALETTE_DROP_EVENT, handlePaletteDrop);
+  }, [placePart, worldPoint]);
+
+  const beginPinch = useCallback(() => {
+    const svg = svgRef.current;
+    const [first, second] = Array.from(touchPointsRef.current.values());
+    if (!svg || !first || !second) return;
+    const rect = svg.getBoundingClientRect();
+    const center = midpoint(first, second);
+    const localCenter = { x: center.x - rect.left, y: center.y - rect.top };
+    const current = useCircuitStore.getState().viewport;
+    pinchRef.current = {
+      startDistance: distance(first, second),
+      startZoom: current.zoom,
+      anchor: {
+        x: (localCenter.x - current.x) / current.zoom,
+        y: (localCenter.y - current.y) / current.zoom,
+      },
+    };
+    dragRef.current = null;
+    setPanning(false);
+    setDraft(null);
+    setGhost(null);
+  }, []);
+
+  const handlePointerDownCapture = (event: PointerEvent<SVGSVGElement>) => {
+    if (event.pointerType === 'mouse') return;
+    svgRef.current?.setPointerCapture(event.pointerId);
+    touchPointsRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touchPointsRef.current.size >= 2) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (touchPointsRef.current.size === 2) beginPinch();
+    }
+  };
+
+  const handlePointerMoveCapture = (event: PointerEvent<SVGSVGElement>) => {
+    if (event.pointerType === 'mouse' || !touchPointsRef.current.has(event.pointerId)) return;
+    touchPointsRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const pinch = pinchRef.current;
+    const svg = svgRef.current;
+    if (!pinch || !svg) return;
+    const [first, second] = Array.from(touchPointsRef.current.values());
+    if (!first || !second) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = svg.getBoundingClientRect();
+    const center = midpoint(first, second);
+    setViewport(
+      pinchViewport(
+        pinch,
+        { x: center.x - rect.left, y: center.y - rect.top },
+        distance(first, second),
+      ),
+    );
+  };
+
+  const handlePointerEndCapture = (event: PointerEvent<SVGSVGElement>) => {
+    if (event.pointerType === 'mouse') return;
+    const wasPinching = pinchRef.current !== null;
+    touchPointsRef.current.delete(event.pointerId);
+    if (!wasPinching) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pinchRef.current = null;
+  };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -303,16 +391,7 @@ export function CircuitCanvas() {
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const worldX = (centerX - viewport.x) / viewport.zoom;
-    const worldY = (centerY - viewport.y) / viewport.zoom;
-    const zoom = clamp(viewport.zoom * factor, MIN_ZOOM, MAX_ZOOM);
-    setViewport({
-      x: centerX - worldX * zoom,
-      y: centerY - worldY * zoom,
-      zoom,
-    });
+    setViewport(zoomAtPoint(viewport, { x: rect.width / 2, y: rect.height / 2 }, factor));
   };
 
   const draftPart = draft
@@ -332,14 +411,19 @@ export function CircuitCanvas() {
   const pendingDef = pendingKind ? PART_DEFS[pendingKind] : null;
 
   return (
-    <div className="canvas-wrap">
+    <div className="canvas-wrap" data-logiksim-canvas>
       <svg
         ref={svgRef}
         className={`canvas-svg ${panning ? 'panning' : ''}`}
+        onPointerDownCapture={handlePointerDownCapture}
+        onPointerMoveCapture={handlePointerMoveCapture}
+        onPointerUpCapture={handlePointerEndCapture}
+        onPointerCancelCapture={handlePointerEndCapture}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onPointerLeave={() => setGhost(null)}
+        onContextMenu={(event) => event.preventDefault()}
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleDrop}
       >
@@ -481,7 +565,7 @@ export function CircuitCanvas() {
         <span><b>Ziehen</b> verschieben</span>
         <span><b>Anschluss</b> Leitung</span>
         <span><b>Entf</b> löschen</span>
-        <span><b>Scrollen</b> zoomen</span>
+        <span><b>Scroll / 2 Finger</b> zoomen</span>
       </div>
 
       <div className="zoom-controls">

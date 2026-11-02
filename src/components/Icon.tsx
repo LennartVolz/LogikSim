@@ -19,6 +19,8 @@ export type IconName =
   | 'fit'
   | 'clock'
   | 'info'
+  | 'blocks'
+  | 'sliders'
   | 'trashWire';
 
 const paths: Record<IconName, ReactNode> = {
@@ -96,6 +98,21 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="8" />
       <path d="M12 11v5M12 8v.1" />
+    </>
+  ),
+  blocks: (
+    <>
+      <rect x="4" y="4" width="6" height="6" rx="1.3" />
+      <rect x="14" y="4" width="6" height="6" rx="1.3" />
+      <rect x="4" y="14" width="6" height="6" rx="1.3" />
+      <path d="M17 14v6M14 17h6" />
+    </>
+  ),
+  sliders: (
+    <>
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2.5" />
+      <circle cx="15" cy="17" r="2.5" />
     </>
   ),
   trashWire: (

@@ -6,7 +6,8 @@ Ein browserbasierter Logiksimulator für Digitaltechnik und Rechenarchitektur. S
 
 **Editor**
 
-- SVG-Schaltplan mit Raster, Snap-to-Grid, Zoom und Pan
+- SVG-Schaltplan mit Raster, Snap-to-Grid, Zoom, Pan und Touch-Gesten
+- Touch-Bedienung: Bauteile am Griff aus der Bibliothek ziehen, Pinch-Zoom, größere Trefferflächen und mobile Panel-Leiste
 - Bauteile per Drag-and-drop oder Klick platzieren, verschieben, löschen
 - Leitungen durch Anklicken zweier Anschlüsse verbinden, inklusive Rückkopplungen
 - Undo/Redo, automatische lokale Speicherung, JSON-Import und -Export
@@ -120,6 +121,8 @@ Beim Import werden unbekannte Bauteile abgelehnt und ungültige Leitungen übers
 | Rückgängig / Wiederholen | `Strg+Z` / `Strg+Shift+Z` |
 | Speichern als JSON | `Strg+S` oder »Speichern« |
 | Zoomen / Ansicht einpassen | Mausrad / Prozentanzeige unten rechts |
+
+**Auf Touch-Geräten:** Die Leiste unter der Toolbar öffnet „Bauteile“ und „Eigenschaften“ als einblendbare Panels. Ein Bauteil wird am Griff `⠿` aus der Bibliothek direkt auf den Editor gezogen; ein einfacher Tipp auf das Bauteil aktiviert weiterhin die Platzierung per Fingertipp. Zwei Finger zoomen und verschieben die Ansicht gleichzeitig. Die Zoomleiste bleibt als Alternative verfügbar.
 
 ## Nächste Ausbaustufen
 
