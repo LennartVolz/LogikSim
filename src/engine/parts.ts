@@ -167,6 +167,23 @@ const defs: PartDef[] = [
     ],
   },
   {
+    kind: 'counter4',
+    name: '4-Bit-Binärzähler',
+    symbol: 'CNT',
+    category: 'sequential',
+    description:
+      'Zählt bei jeder steigenden Taktflanke um 1, wenn EN aktiv ist. CLR setzt asynchron auf 0; TC meldet den Endstand 15.',
+    width: 176,
+    height: 144,
+    pins: [
+      { id: 'clk', name: 'CLK', dir: 'in', x: 0, y: 32, width: 1 },
+      { id: 'en', name: 'EN', dir: 'in', x: 0, y: 72, width: 1 },
+      { id: 'clr', name: 'CLR', dir: 'in', x: 0, y: 112, width: 1, optional: true },
+      { id: 'q', name: 'Q', dir: 'out', x: 176, y: 48, width: 4 },
+      { id: 'tc', name: 'TC', dir: 'out', x: 176, y: 104, width: 1 },
+    ],
+  },
+  {
     kind: 'inc4',
     name: '4-Bit-Inkrementer',
     symbol: '+1',
@@ -212,6 +229,54 @@ const defs: PartDef[] = [
       { id: 'q', name: 'Q', dir: 'out', x: 148, y: 76, width: 4 },
     ],
   },
+  {
+    kind: 'mux2',
+    name: '2:1-Multiplexer (1 Bit)',
+    symbol: 'MUX',
+    category: 'arithmetic',
+    description: 'Wählt mit S zwischen A (S=0) und B (S=1).',
+    width: 136,
+    height: 112,
+    pins: [
+      { id: 'a', name: 'A', dir: 'in', x: 0, y: 24, width: 1 },
+      { id: 'b', name: 'B', dir: 'in', x: 0, y: 64, width: 1 },
+      { id: 's', name: 'S', dir: 'in', x: 0, y: 94, width: 1 },
+      { id: 'y', name: 'Y', dir: 'out', x: 136, y: 42, width: 1 },
+    ],
+  },
+  {
+    kind: 'mux4',
+    name: '2:1-Multiplexer (4 Bit)',
+    symbol: 'MUX4',
+    category: 'arithmetic',
+    description: 'Schaltet einen 4-Bit-Bus: S=0 wählt A, S=1 wählt B.',
+    width: 168,
+    height: 136,
+    pins: [
+      { id: 'a', name: 'A', dir: 'in', x: 0, y: 32, width: 4 },
+      { id: 'b', name: 'B', dir: 'in', x: 0, y: 72, width: 4 },
+      { id: 's', name: 'S', dir: 'in', x: 0, y: 112, width: 1 },
+      { id: 'y', name: 'Y', dir: 'out', x: 168, y: 52, width: 4 },
+    ],
+  },
+  {
+    kind: 'alu4',
+    name: '4-Bit-ALU',
+    symbol: 'ALU',
+    category: 'arithmetic',
+    description:
+      '4-Bit-ALU: ADD, SUB, AND, OR, XOR, NOT A, SHL A, SHR A über OP=0…7. C meldet Carry/Überlauf, Z meldet Y=0.',
+    width: 208,
+    height: 168,
+    pins: [
+      { id: 'a', name: 'A', dir: 'in', x: 0, y: 32, width: 4 },
+      { id: 'b', name: 'B', dir: 'in', x: 0, y: 72, width: 4 },
+      { id: 'op', name: 'OP', dir: 'in', x: 0, y: 112, width: 4 },
+      { id: 'y', name: 'Y', dir: 'out', x: 208, y: 48, width: 4 },
+      { id: 'carry', name: 'C', dir: 'out', x: 208, y: 96, width: 1 },
+      { id: 'zero', name: 'Z', dir: 'out', x: 208, y: 136, width: 1 },
+    ],
+  },
 ];
 
 export const PART_DEFS = Object.fromEntries(defs.map((def) => [def.kind, def])) as Record<PartKind, PartDef>;
@@ -229,7 +294,7 @@ export const CATEGORY_ORDER: PartCategory[] = ['gates', 'io', 'sequential', 'ari
 
 export const IO_BIT_OPTIONS = [1, 4, 8] as const;
 
-const SEQUENTIAL_KINDS: PartKind[] = ['dff', 'register4'];
+const SEQUENTIAL_KINDS: PartKind[] = ['dff', 'register4', 'counter4'];
 
 export function isSequential(kind: PartKind): boolean {
   return SEQUENTIAL_KINDS.includes(kind);
@@ -273,6 +338,21 @@ export function mask(value: number, bits: number): number {
   if (bits <= 0) return 0;
   if (bits >= 31) return value >>> 0;
   return value & ((1 << bits) - 1);
+}
+
+export const ALU_OPERATION_NAMES = [
+  'ADD',
+  'SUB',
+  'AND',
+  'OR',
+  'XOR',
+  'NOT A',
+  'SHL A',
+  'SHR A',
+] as const;
+
+export function aluOperationName(op: number): string {
+  return ALU_OPERATION_NAMES[mask(op, 3)] ?? 'ADD';
 }
 
 export function formatBinary(value: number, bits: number): string {

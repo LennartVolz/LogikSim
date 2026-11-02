@@ -183,6 +183,8 @@ export function collectTimingSignals(circuit: Circuit): TimingSignal[] {
   for (const part of ordered) {
     if (part.kind === 'dff') add(part, 'q', part.label?.trim() ? `${part.label.trim()} Q` : 'DFF Q', 'FF');
     if (part.kind === 'register4') add(part, 'q', part.label?.trim() ? `${part.label.trim()} Q` : 'REG Q', 'REG');
+    if (part.kind === 'counter4') add(part, 'q', part.label?.trim() ? `${part.label.trim()} Q` : 'CNT Q', 'CNT');
+    if (part.kind === 'alu4') add(part, 'y', part.label?.trim() ? `${part.label.trim()} Y` : 'ALU Y', 'ALU');
   }
   for (const part of ordered) {
     if (part.kind === 'output') add(part, 'in', part.label?.trim() || 'Ausgang', 'OUT');

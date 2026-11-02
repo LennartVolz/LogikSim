@@ -19,6 +19,29 @@ function valueOf(circuit: Circuit, pins: PinValues, label: string): number {
   return readOutputPinValue(circuit, pins, part);
 }
 
+function withInputValue(circuit: Circuit, partId: string, value: number): Circuit {
+  return {
+    ...circuit,
+    parts: circuit.parts.map((part) => (part.id === partId ? { ...part, value } : part)),
+  };
+}
+
+function buildCounterCircuit() {
+  const builder = new CircuitBuilder('Counter-Test');
+  const clock = builder.add('clock', 0, 0);
+  const enable = builder.add('input', 0, 150, { label: 'EN', value: 1 });
+  const clear = builder.add('input', 0, 260, { label: 'CLR', value: 0 });
+  const counter = builder.add('counter4', 260, 40);
+  const q = builder.add('output', 520, 60, { label: 'Q', bits: 4 });
+  const tc = builder.add('output', 520, 180, { label: 'TC' });
+  builder.link(clock, 'out', counter, 'clk');
+  builder.link(enable, 'out', counter, 'en');
+  builder.link(clear, 'out', counter, 'clr');
+  builder.link(counter, 'q', q, 'in');
+  builder.link(counter, 'tc', tc, 'in');
+  return { circuit: builder.build(), enable, clear };
+}
+
 describe('kombinatorische Simulation', () => {
   it('berechnet den Halbaddierer für alle Eingaben', () => {
     const circuit = structuredClone(EXAMPLES[0].circuit);
@@ -224,5 +247,128 @@ describe('Lernmodus-Prüfungen', () => {
     expect(starter.parts).toHaveLength(8);
     const result = checkCircuit(starter, CHALLENGES[2]);
     expect(result.passed).toBe(false);
+  });
+});
+
+describe('MVP-2-Bausteine', () => {
+  it('zählt bei steigender Flanke, respektiert EN und setzt asynchron zurück', () => {
+    const { circuit, enable, clear } = buildCounterCircuit();
+    let state = initialState(circuit);
+    expect(valueOf(circuit, state.pins, 'Q')).toBe(0);
+    expect(valueOf(circuit, state.pins, 'TC')).toBe(0);
+
+    state = stepClocks(circuit, state);
+    expect(valueOf(circuit, state.pins, 'Q')).toBe(1);
+    state = stepClocks(circuit, state);
+    expect(valueOf(circuit, state.pins, 'Q')).toBe(1);
+    state = stepClocks(circuit, state);
+    expect(valueOf(circuit, state.pins, 'Q')).toBe(2);
+
+    const disabled = withInputValue(circuit, enable.id, 0);
+    state = simulate(disabled, state, [enable.id]);
+    state = stepClocks(disabled, state);
+    expect(valueOf(disabled, state.pins, 'Q')).toBe(2);
+
+    const enabledAgain = withInputValue(disabled, enable.id, 1);
+    state = simulate(enabledAgain, state, [enable.id]);
+    state = stepClocks(enabledAgain, state);
+    expect(valueOf(enabledAgain, state.pins, 'Q')).toBe(3);
+
+    const cleared = withInputValue(enabledAgain, clear.id, 1);
+    state = simulate(cleared, state, [clear.id]);
+    expect(valueOf(cleared, state.pins, 'Q')).toBe(0);
+  });
+
+  it('läuft bis 15, meldet TC und läuft anschließend über', () => {
+    const { circuit } = buildCounterCircuit();
+    let state = initialState(circuit);
+    for (let count = 0; count < 15; count += 1) {
+      state = stepClocks(circuit, state);
+      state = stepClocks(circuit, state);
+    }
+    expect(valueOf(circuit, state.pins, 'Q')).toBe(15);
+    expect(valueOf(circuit, state.pins, 'TC')).toBe(1);
+
+    state = stepClocks(circuit, state);
+    state = stepClocks(circuit, state);
+    expect(valueOf(circuit, state.pins, 'Q')).toBe(0);
+    expect(valueOf(circuit, state.pins, 'TC')).toBe(0);
+  });
+
+  it('multiplexer wählen zwischen A und B', () => {
+    const single = new CircuitBuilder('MUX2-Test');
+    const a1 = single.add('input', 0, 0, { label: 'A', value: 0 });
+    const b1 = single.add('input', 0, 100, { label: 'B', value: 1 });
+    const s1 = single.add('input', 0, 200, { label: 'S', value: 0 });
+    const mux2 = single.add('mux2', 250, 40);
+    const y1 = single.add('output', 450, 40, { label: 'Y' });
+    single.link(a1, 'out', mux2, 'a');
+    single.link(b1, 'out', mux2, 'b');
+    single.link(s1, 'out', mux2, 's');
+    single.link(mux2, 'y', y1, 'in');
+    const circuit1 = single.build();
+    for (const select of [0, 1]) {
+      const result = evaluateCombination(circuit1, new Map([[s1.id, select]]));
+      expect(valueOf(circuit1, result.pins, 'Y')).toBe(select);
+    }
+
+    const wide = new CircuitBuilder('MUX4-Test');
+    const a4 = wide.add('input', 0, 0, { label: 'A', bits: 4, value: 10 });
+    const b4 = wide.add('input', 0, 120, { label: 'B', bits: 4, value: 5 });
+    const s4 = wide.add('input', 0, 240, { label: 'S', value: 0 });
+    const mux4 = wide.add('mux4', 260, 40);
+    const y4 = wide.add('output', 500, 40, { label: 'Y', bits: 4 });
+    wide.link(a4, 'out', mux4, 'a');
+    wide.link(b4, 'out', mux4, 'b');
+    wide.link(s4, 'out', mux4, 's');
+    wide.link(mux4, 'y', y4, 'in');
+    const circuit4 = wide.build();
+    expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 0]])).pins, 'Y')).toBe(10);
+    expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 1]])).pins, 'Y')).toBe(5);
+  });
+
+  it('ALU rechnet alle acht Operationen und setzt Carry sowie Zero', () => {
+    const builder = new CircuitBuilder('ALU-Test');
+    const a = builder.add('input', 0, 0, { label: 'A', bits: 4, value: 0 });
+    const b = builder.add('input', 0, 120, { label: 'B', bits: 4, value: 0 });
+    const op = builder.add('input', 0, 240, { label: 'OP', bits: 4, value: 0 });
+    const alu = builder.add('alu4', 280, 40);
+    const y = builder.add('output', 560, 40, { label: 'Y', bits: 4 });
+    const carry = builder.add('output', 560, 140, { label: 'C' });
+    const zero = builder.add('output', 560, 240, { label: 'Z' });
+    builder.link(a, 'out', alu, 'a');
+    builder.link(b, 'out', alu, 'b');
+    builder.link(op, 'out', alu, 'op');
+    builder.link(alu, 'y', y, 'in');
+    builder.link(alu, 'carry', carry, 'in');
+    builder.link(alu, 'zero', zero, 'in');
+    const circuit = builder.build();
+    const run = (av: number, bv: number, ov: number) => {
+      const result = evaluateCombination(
+        circuit,
+        new Map([
+          [a.id, av],
+          [b.id, bv],
+          [op.id, ov],
+        ]),
+      );
+      return {
+        y: valueOf(circuit, result.pins, 'Y'),
+        c: valueOf(circuit, result.pins, 'C'),
+        z: valueOf(circuit, result.pins, 'Z'),
+      };
+    };
+
+    expect(run(9, 3, 0)).toEqual({ y: 12, c: 0, z: 0 });
+    expect(run(15, 1, 0)).toEqual({ y: 0, c: 1, z: 1 });
+    expect(run(3, 5, 1)).toEqual({ y: 14, c: 0, z: 0 });
+    expect(run(5, 3, 1)).toEqual({ y: 2, c: 1, z: 0 });
+    expect(run(10, 6, 2)).toEqual({ y: 2, c: 0, z: 0 });
+    expect(run(10, 6, 3)).toEqual({ y: 14, c: 0, z: 0 });
+    expect(run(10, 6, 4)).toEqual({ y: 12, c: 0, z: 0 });
+    expect(run(9, 0, 5)).toEqual({ y: 6, c: 0, z: 0 });
+    expect(run(9, 0, 6)).toEqual({ y: 2, c: 1, z: 0 });
+    expect(run(9, 0, 7)).toEqual({ y: 4, c: 1, z: 0 });
+    expect(run(0, 0, 0)).toEqual({ y: 0, c: 0, z: 1 });
   });
 });
