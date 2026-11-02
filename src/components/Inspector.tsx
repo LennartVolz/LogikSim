@@ -1,8 +1,10 @@
 import type { Part, PinValues } from '../engine/types';
 import {
+  COUNTER_MODULO_OPTIONS,
   IO_BIT_OPTIONS,
   PART_DEFS,
   aluOperationName,
+  counterModulo,
   formatBinary,
   getPins,
   mask,
@@ -117,6 +119,7 @@ function PartInspector({ part, pins }: { part: Part; pins: PinValues }) {
   const def = PART_DEFS[part.kind];
   const updateLabel = useCircuitStore((state) => state.updateLabel);
   const updateBits = useCircuitStore((state) => state.updateBits);
+  const updateCounterModulo = useCircuitStore((state) => state.updateCounterModulo);
   const deleteSelection = useCircuitStore((state) => state.deleteSelection);
   const beginDragSnapshot = useCircuitStore((state) => state.beginDragSnapshot);
   const tickClock = useCircuitStore((state) => state.tickClock);
@@ -228,6 +231,33 @@ function PartInspector({ part, pins }: { part: Part; pins: PinValues }) {
             <span>Taktflanken</span>
             <code>steigend</code>
           </div>
+          {part.kind === 'counter4' && (
+            <>
+              <label className="field-label">
+                Modulo
+                <select
+                  value={counterModulo(part)}
+                  onChange={(event) => updateCounterModulo(part.id, Number(event.target.value))}
+                >
+                  {COUNTER_MODULO_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === 16 ? '16 (frei laufend)' : option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="field-hint">
+                Zählt von 0 bis {counterModulo(part) - 1}; TC wird beim letzten Wert aktiv.
+              </p>
+            </>
+          )}
+        </section>
+      )}
+
+      {(part.kind === 'demux2' || part.kind === 'demux4') && (
+        <section className="inspector-section">
+          <span className="field-label">Ausgangswahl</span>
+          <p className="field-hint">S = 0 leitet D auf Y0, S = 1 auf Y1. Der andere Ausgang ist 0.</p>
         </section>
       )}
 
@@ -420,7 +450,7 @@ function DefaultInspector() {
 
       <div className="inspector-footer">
         <span>LogikSim</span>
-        <span>SN74 · MVP 2</span>
+        <span>SN74 · MVP 3</span>
       </div>
     </div>
   );

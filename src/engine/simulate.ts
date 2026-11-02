@@ -1,5 +1,6 @@
 import {
   PART_DEFS,
+  counterModulo,
   getPin,
   getPins,
   isSequential,
@@ -207,7 +208,7 @@ function evaluatePart(
       if (inputs.clr) rt.q = 0;
       rt.q ??= 0;
       const q = mask(rt.q, 4);
-      return { q, tc: q === 0xf ? 1 : 0 };
+      return { q, tc: q === counterModulo(part) - 1 ? 1 : 0 };
     }
     case 'inc4': {
       const input = mask(inputs.a ?? 0, 4);
@@ -220,6 +221,16 @@ function evaluatePart(
     case 'mux4': {
       const select = inputs.s ?? 0;
       return { y: mask(select ? inputs.b ?? 0 : inputs.a ?? 0, 4) };
+    }
+    case 'demux2': {
+      const select = inputs.s ?? 0;
+      const input = inputs.d ?? 0;
+      return { y0: select ? 0 : input & 1, y1: select ? input & 1 : 0 };
+    }
+    case 'demux4': {
+      const select = inputs.s ?? 0;
+      const input = mask(inputs.d ?? 0, 4);
+      return { y0: select ? 0 : input, y1: select ? input : 0 };
     }
     case 'alu4': {
       const a4 = mask(inputs.a ?? 0, 4);
@@ -440,11 +451,17 @@ export function stepClocks(circuit: Circuit, state: SimState): SimResult {
       }
     } else if (part.kind === 'counter4') {
       const clear = pins[pinKey(part.id, 'clr')] ?? 0;
+      const load = pins[pinKey(part.id, 'load')] ?? 0;
       const enable = pins[pinKey(part.id, 'en')] ?? 0;
       if (clear) {
         rt.q = 0;
-      } else if (clock && !previousClock && enable) {
-        rt.q = mask((rt.q ?? 0) + 1, 4);
+      } else if (clock && !previousClock) {
+        if (load) {
+          rt.q = mask(pins[pinKey(part.id, 'd')] ?? 0, 4);
+        } else if (enable) {
+          const next = (rt.q ?? 0) + 1;
+          rt.q = next >= counterModulo(part) ? 0 : mask(next, 4);
+        }
       }
     }
     rt.lastClk = clock;

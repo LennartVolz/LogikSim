@@ -31,15 +31,19 @@ function buildCounterCircuit() {
   const clock = builder.add('clock', 0, 0);
   const enable = builder.add('input', 0, 150, { label: 'EN', value: 1 });
   const clear = builder.add('input', 0, 260, { label: 'CLR', value: 0 });
+  const load = builder.add('input', 0, 370, { label: 'LOAD', value: 0 });
+  const data = builder.add('input', 0, 480, { label: 'D', bits: 4, value: 0 });
   const counter = builder.add('counter4', 260, 40);
   const q = builder.add('output', 520, 60, { label: 'Q', bits: 4 });
   const tc = builder.add('output', 520, 180, { label: 'TC' });
   builder.link(clock, 'out', counter, 'clk');
   builder.link(enable, 'out', counter, 'en');
   builder.link(clear, 'out', counter, 'clr');
+  builder.link(load, 'out', counter, 'load');
+  builder.link(data, 'out', counter, 'd');
   builder.link(counter, 'q', q, 'in');
   builder.link(counter, 'tc', tc, 'in');
-  return { circuit: builder.build(), enable, clear };
+  return { circuit: builder.build(), enable, clear, load, data };
 }
 
 describe('kombinatorische Simulation', () => {
@@ -172,6 +176,36 @@ describe('sequentielle Simulation', () => {
   });
 });
 
+describe('MVP-3-Bausteine', () => {
+  it('zählt modulo 10 und übernimmt D bei parallelem Load', () => {
+    const { circuit, data, load } = buildCounterCircuit();
+    const moduloCircuit: Circuit = {
+      ...circuit,
+      parts: circuit.parts.map((part) =>
+        part.kind === 'counter4' ? { ...part, modulo: 10 } : part,
+      ),
+    };
+    let state = initialState(moduloCircuit);
+    for (let count = 0; count < 9; count += 1) {
+      state = stepClocks(moduloCircuit, state);
+      state = stepClocks(moduloCircuit, state);
+    }
+    expect(valueOf(moduloCircuit, state.pins, 'Q')).toBe(9);
+    expect(valueOf(moduloCircuit, state.pins, 'TC')).toBe(1);
+
+    state = stepClocks(moduloCircuit, state);
+    state = stepClocks(moduloCircuit, state);
+    expect(valueOf(moduloCircuit, state.pins, 'Q')).toBe(0);
+    expect(valueOf(moduloCircuit, state.pins, 'TC')).toBe(0);
+
+    const loaded = withInputValue(withInputValue(moduloCircuit, data.id, 7), load.id, 1);
+    state = simulate(loaded, state, [data.id, load.id]);
+    state = stepClocks(loaded, state);
+    expect(valueOf(loaded, state.pins, 'Q')).toBe(7);
+    expect(valueOf(loaded, state.pins, 'TC')).toBe(0);
+  });
+});
+
 describe('Beispiele und Projektformat', () => {
   it('simuliert alle Beispiele ohne Strukturfehler', () => {
     for (const example of EXAMPLES) {
@@ -192,6 +226,17 @@ describe('Beispiele und Projektformat', () => {
     expect(parsed.circuit.parts).toHaveLength(original.parts.length);
     expect(parsed.circuit.wires).toHaveLength(original.wires.length);
     expect(parsed.skippedWires).toBe(0);
+  });
+
+  it('speichert die Modulo-Konfiguration eines Zählers', () => {
+    const example = EXAMPLES.find((entry) => entry.id === 'counter-modulo');
+    expect(example).toBeDefined();
+    if (!example) return;
+    const parsed = parseProject(serializeProject(structuredClone(example.circuit)));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const counter = parsed.circuit.parts.find((part) => part.kind === 'counter4');
+    expect(counter?.modulo).toBe(10);
   });
 
   it('weist fremde Dateien zurück', () => {
@@ -325,6 +370,42 @@ describe('MVP-2-Bausteine', () => {
     const circuit4 = wide.build();
     expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 0]])).pins, 'Y')).toBe(10);
     expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 1]])).pins, 'Y')).toBe(5);
+  });
+
+  it('demultiplexer leiten D auf Y0 oder Y1', () => {
+    const single = new CircuitBuilder('DEMUX2-Test');
+    const d1 = single.add('input', 0, 0, { label: 'D', value: 1 });
+    const s1 = single.add('input', 0, 100, { label: 'S', value: 0 });
+    const demux2 = single.add('demux2', 250, 40);
+    const y01 = single.add('output', 450, 30, { label: 'Y0' });
+    const y11 = single.add('output', 450, 150, { label: 'Y1' });
+    single.link(d1, 'out', demux2, 'd');
+    single.link(s1, 'out', demux2, 's');
+    single.link(demux2, 'y0', y01, 'in');
+    single.link(demux2, 'y1', y11, 'in');
+    const circuit1 = single.build();
+    const run1 = (select: number) => {
+      const result = evaluateCombination(circuit1, new Map([[s1.id, select]]));
+      return [valueOf(circuit1, result.pins, 'Y0'), valueOf(circuit1, result.pins, 'Y1')];
+    };
+    expect(run1(0)).toEqual([1, 0]);
+    expect(run1(1)).toEqual([0, 1]);
+
+    const wide = new CircuitBuilder('DEMUX4-Test');
+    const d4 = wide.add('input', 0, 0, { label: 'D', bits: 4, value: 10 });
+    const s4 = wide.add('input', 0, 120, { label: 'S', value: 0 });
+    const demux4 = wide.add('demux4', 280, 40);
+    const y04 = wide.add('output', 520, 30, { label: 'Y0', bits: 4 });
+    const y14 = wide.add('output', 520, 150, { label: 'Y1', bits: 4 });
+    wide.link(d4, 'out', demux4, 'd');
+    wide.link(s4, 'out', demux4, 's');
+    wide.link(demux4, 'y0', y04, 'in');
+    wide.link(demux4, 'y1', y14, 'in');
+    const circuit4 = wide.build();
+    expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 0]])).pins, 'Y0')).toBe(10);
+    expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 0]])).pins, 'Y1')).toBe(0);
+    expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 1]])).pins, 'Y0')).toBe(0);
+    expect(valueOf(circuit4, evaluateCombination(circuit4, new Map([[s4.id, 1]])).pins, 'Y1')).toBe(10);
   });
 
   it('ALU rechnet alle acht Operationen und setzt Carry sowie Zero', () => {

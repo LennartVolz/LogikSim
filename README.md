@@ -11,7 +11,7 @@ Ein browserbasierter Logiksimulator für Digitaltechnik und Rechenarchitektur. S
 - Bauteile per Drag-and-drop oder Klick platzieren, verschieben, löschen
 - Leitungen durch Anklicken zweier Anschlüsse verbinden, inklusive Rückkopplungen
 - Undo/Redo, automatische lokale Speicherung, JSON-Import und -Export
-- Neun vorgefertigte Beispielschaltungen
+- Elf vorgefertigte Beispielschaltungen
 
 **Bauteile**
 
@@ -19,8 +19,8 @@ Ein browserbasierter Logiksimulator für Digitaltechnik und Rechenarchitektur. S
 - Ein-/Ausgänge, Konstanten 0/1, Taktgeber
 - D-Flip-Flop mit asynchronem Reset
 - 4-Bit-Register mit Load, Takt und asynchronem Clear
-- 4-Bit-Binärzähler mit Enable, asynchronem Clear und Terminal Count
-- 4-Bit-Inkrementer, 2:1-Multiplexer (1 und 4 Bit), 4-Bit-ALU, 4-Bit-Splitter, 4-Bit-Merger
+- 4-Bit-Binärzähler mit Enable, parallelem Load, Modulo 2–16, asynchronem Clear und Terminal Count
+- 4-Bit-Inkrementer, 2:1-Multiplexer und 1:2-Demultiplexer (je 1 und 4 Bit), 4-Bit-ALU, 4-Bit-Splitter, 4-Bit-Merger
 - Ein- und Ausgänge sind als 1-, 4- oder 8-Bit-Bus konfigurierbar
 
 **Simulation**
@@ -127,10 +127,8 @@ Beim Import werden unbekannte Bauteile abgelehnt und ungültige Leitungen übers
 
 ## Nächste Ausbaustufen
 
-Der aktuelle Stand entspricht MVP 1 und MVP 2: Editor, Simulation, Analyse, Lernmodus, Zähler, Multiplexer und ALU. Noch nicht enthalten:
+Der aktuelle Stand entspricht MVP 1 bis MVP 3: Editor, Simulation, Analyse, Lernmodus, Zähler mit Load und Modulo, Multiplexer, Demultiplexer und ALU. Noch nicht enthalten:
 
-- Demultiplexer und Modulo-Zähler
-- Zähler mit parallelem Load
 - Subcircuits und hierarchische Bausteine
 - RAM, ROM und CPU-Modell
 - Verzögerungsmodell und Timing-Analyse mit echten Gatterlaufzeiten

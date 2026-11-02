@@ -4,6 +4,7 @@ export interface PartOptions {
   label?: string;
   value?: number;
   bits?: number;
+  modulo?: number;
 }
 
 let uidCounter = 0;
@@ -33,6 +34,7 @@ export class CircuitBuilder {
     if (options.label !== undefined) part.label = options.label;
     if (options.value !== undefined) part.value = options.value;
     if (options.bits !== undefined) part.bits = options.bits;
+    if (options.modulo !== undefined) part.modulo = options.modulo;
     this.parts.push(part);
     return part;
   }
