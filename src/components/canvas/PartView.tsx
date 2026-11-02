@@ -1,6 +1,6 @@
 import type { PointerEvent, ReactElement } from 'react';
 import type { Part, PartDef, PinDef, PinValues } from '../../engine/types';
-import { formatBinary, getPins, mask, pinKey } from '../../engine/parts';
+import { aluOperationName, formatBinary, getPins, mask, pinKey } from '../../engine/parts';
 
 export interface DraftInfo {
   partId: string;
@@ -343,6 +343,43 @@ function PartBody({
         </g>
       );
     }
+    case 'counter4': {
+      const q = values[pinKey(part.id, 'q')] ?? 0;
+      const tc = values[pinKey(part.id, 'tc')] ?? 0;
+      return (
+        <g>
+          <rect className="part-body seq-body" x="8" y="8" width="160" height="128" rx="10" />
+          <text className="part-title" x="88" y="24" textAnchor="middle">
+            4-BIT-COUNTER
+          </text>
+          <text className="pin-label" x="18" y="36">
+            CLK
+          </text>
+          <text className="pin-label" x="18" y="76">
+            EN
+          </text>
+          <text className="pin-label" x="18" y="116">
+            CLR
+          </text>
+          <path className="clock-notch" d="M10 26 L17 32 L10 38" />
+          <text className="pin-label right" x="162" y="52" textAnchor="end">
+            Q
+          </text>
+          <text className="pin-label right" x="162" y="108" textAnchor="end">
+            TC={tc}
+          </text>
+          <rect className="value-chip wide" x="48" y="52" width="84" height="44" rx="8" />
+          <text className="chip-value bus" x="90" y="73" textAnchor="middle">
+            {formatBinary(q, 4)}
+          </text>
+          <text className="chip-decimal" x="90" y="88" textAnchor="middle">
+            = {q}
+          </text>
+          <line className="gate-lead" x1="168" y1="48" x2="176" y2="48" />
+          <line className="gate-lead" x1="168" y1="104" x2="176" y2="104" />
+        </g>
+      );
+    }
     case 'inc4': {
       const s = values[pinKey(part.id, 's')] ?? 0;
       const cout = values[pinKey(part.id, 'cout')] ?? 0;
@@ -375,6 +412,129 @@ function PartBody({
           </text>
           <line className="gate-lead" x1="140" y1="38" x2="148" y2="38" />
           <line className="gate-lead" x1="140" y1="78" x2="148" y2="78" />
+        </g>
+      );
+    }
+    case 'mux2': {
+      const select = values[pinKey(part.id, 's')] ?? 0;
+      const y = values[pinKey(part.id, 'y')] ?? 0;
+      return (
+        <g>
+          <path className="part-body arith-body" d="M8 8 H88 L120 34 V78 L88 104 H8 Z" />
+          <text className="part-title" x="64" y="24" textAnchor="middle">
+            2:1 MUX
+          </text>
+          <text className="micro-label" x="16" y="28">
+            A
+          </text>
+          <text className="micro-label" x="16" y="68">
+            B
+          </text>
+          <text className="micro-label" x="16" y="98">
+            S
+          </text>
+          <text className="micro-label" x="70" y="52" textAnchor="middle">
+            {select ? 'B' : 'A'} → Y
+          </text>
+          <text className="arith-symbol" x="70" y="82" textAnchor="middle">
+            {y}
+          </text>
+          <line className="gate-lead" x1="120" y1="42" x2="136" y2="42" />
+        </g>
+      );
+    }
+    case 'mux4': {
+      const select = values[pinKey(part.id, 's')] ?? 0;
+      const y = values[pinKey(part.id, 'y')] ?? 0;
+      return (
+        <g>
+          <rect className="part-body arith-body" x="8" y="8" width="140" height="120" rx="10" />
+          <text className="part-title" x="78" y="24" textAnchor="middle">
+            4-BIT MUX
+          </text>
+          <text className="micro-label" x="18" y="36">
+            A
+          </text>
+          <text className="pin-width-inline" x="29" y="36">
+            4
+          </text>
+          <text className="micro-label" x="18" y="76">
+            B
+          </text>
+          <text className="pin-width-inline" x="29" y="76">
+            4
+          </text>
+          <text className="micro-label" x="18" y="116">
+            S
+          </text>
+          <text className="micro-label" x="132" y="116" textAnchor="end">
+            S={select}
+          </text>
+          <text className="micro-label" x="132" y="56" textAnchor="end">
+            Y
+          </text>
+          <text className="pin-width-inline" x="115" y="56" textAnchor="end">
+            4
+          </text>
+          <rect className="value-chip wide" x="46" y="56" width="66" height="38" rx="8" />
+          <text className="chip-value bus" x="79" y="74" textAnchor="middle">
+            {formatBinary(y, 4)}
+          </text>
+          <text className="chip-decimal" x="79" y="88" textAnchor="middle">
+            = {y}
+          </text>
+          <line className="gate-lead" x1="148" y1="52" x2="168" y2="52" />
+        </g>
+      );
+    }
+    case 'alu4': {
+      const op = values[pinKey(part.id, 'op')] ?? 0;
+      const y = values[pinKey(part.id, 'y')] ?? 0;
+      const carry = values[pinKey(part.id, 'carry')] ?? 0;
+      const zero = values[pinKey(part.id, 'zero')] ?? 0;
+      return (
+        <g>
+          <rect className="part-body arith-body" x="8" y="8" width="184" height="152" rx="10" />
+          <text className="part-title" x="100" y="24" textAnchor="middle">
+            4-BIT ALU
+          </text>
+          <text className="micro-label" x="18" y="36">
+            A
+          </text>
+          <text className="pin-width-inline" x="29" y="36">
+            4
+          </text>
+          <text className="micro-label" x="18" y="76">
+            B
+          </text>
+          <text className="pin-width-inline" x="29" y="76">
+            4
+          </text>
+          <text className="micro-label" x="18" y="116">
+            OP
+          </text>
+          <text className="pin-width-inline" x="40" y="116">
+            4
+          </text>
+          <text className="micro-label" x="100" y="48" textAnchor="middle">
+            {aluOperationName(op)}
+          </text>
+          <rect className="value-chip wide" x="52" y="62" width="96" height="42" rx="8" />
+          <text className="chip-value bus" x="100" y="82" textAnchor="middle">
+            {formatBinary(y, 4)}
+          </text>
+          <text className="chip-decimal" x="100" y="96" textAnchor="middle">
+            = {y}
+          </text>
+          <text className="micro-label" x="184" y="100" textAnchor="end">
+            C={carry}
+          </text>
+          <text className="micro-label" x="184" y="140" textAnchor="end">
+            Z={zero}
+          </text>
+          <line className="gate-lead" x1="192" y1="48" x2="208" y2="48" />
+          <line className="gate-lead" x1="192" y1="96" x2="208" y2="96" />
+          <line className="gate-lead" x1="192" y1="136" x2="208" y2="136" />
         </g>
       );
     }

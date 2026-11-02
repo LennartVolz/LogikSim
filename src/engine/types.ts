@@ -15,7 +15,11 @@ export type PartKind =
   | 'clock'
   | 'dff'
   | 'register4'
+  | 'counter4'
   | 'inc4'
+  | 'mux2'
+  | 'mux4'
+  | 'alu4'
   | 'split4'
   | 'merge4';
 

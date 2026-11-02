@@ -2,6 +2,7 @@ import type { Part, PinValues } from '../engine/types';
 import {
   IO_BIT_OPTIONS,
   PART_DEFS,
+  aluOperationName,
   formatBinary,
   getPins,
   mask,
@@ -211,9 +212,11 @@ function PartInspector({ part, pins }: { part: Part; pins: PinValues }) {
         </section>
       )}
 
-      {(part.kind === 'dff' || part.kind === 'register4') && (
+      {(part.kind === 'dff' || part.kind === 'register4' || part.kind === 'counter4') && (
         <section className="inspector-section">
-          <span className="field-label">Gespeicherter Zustand</span>
+          <span className="field-label">
+            {part.kind === 'counter4' ? 'Zählerstand' : 'Gespeicherter Zustand'}
+          </span>
           <div className="live-display">
             <span className="live-dot-large" data-active={qValue !== 0} />
             <strong>{formatBinary(qValue, part.kind === 'dff' ? 1 : 4)}</strong>
@@ -225,6 +228,20 @@ function PartInspector({ part, pins }: { part: Part; pins: PinValues }) {
             <span>Taktflanken</span>
             <code>steigend</code>
           </div>
+        </section>
+      )}
+
+      {part.kind === 'alu4' && (
+        <section className="inspector-section">
+          <span className="field-label">Operation</span>
+          <div className="live-display">
+            <strong>{aluOperationName(pins[pinKey(part.id, 'op')] ?? 0)}</strong>
+            <span>OP = {pins[pinKey(part.id, 'op')] ?? 0}</span>
+          </div>
+          <p className="field-hint">
+            0 ADD · 1 SUB · 2 AND · 3 OR · 4 XOR · 5 NOT A · 6 SHL A · 7 SHR A
+          </p>
+          <p className="field-hint">SUB: C = 1, wenn A ≥ B (kein Borrow).</p>
         </section>
       )}
 
@@ -403,7 +420,7 @@ function DefaultInspector() {
 
       <div className="inspector-footer">
         <span>LogikSim</span>
-        <span>SN74 · MVP</span>
+        <span>SN74 · MVP 2</span>
       </div>
     </div>
   );

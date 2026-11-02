@@ -203,9 +203,63 @@ function evaluatePart(
       rt.q ??= 0;
       return { q: mask(rt.q, 4) };
     }
+    case 'counter4': {
+      if (inputs.clr) rt.q = 0;
+      rt.q ??= 0;
+      const q = mask(rt.q, 4);
+      return { q, tc: q === 0xf ? 1 : 0 };
+    }
     case 'inc4': {
       const input = mask(inputs.a ?? 0, 4);
       return { s: mask(input + 1, 4), cout: input === 0xf ? 1 : 0 };
+    }
+    case 'mux2': {
+      const select = inputs.s ?? 0;
+      return { y: ((select ? inputs.b : inputs.a) ?? 0) & 1 };
+    }
+    case 'mux4': {
+      const select = inputs.s ?? 0;
+      return { y: mask(select ? inputs.b ?? 0 : inputs.a ?? 0, 4) };
+    }
+    case 'alu4': {
+      const a4 = mask(inputs.a ?? 0, 4);
+      const b4 = mask(inputs.b ?? 0, 4);
+      const op = mask(inputs.op ?? 0, 3);
+      let y = 0;
+      let carry = 0;
+      switch (op) {
+        case 0: {
+          const sum = a4 + b4;
+          y = mask(sum, 4);
+          carry = sum > 0xf ? 1 : 0;
+          break;
+        }
+        case 1:
+          y = mask(a4 - b4, 4);
+          carry = a4 >= b4 ? 1 : 0;
+          break;
+        case 2:
+          y = a4 & b4;
+          break;
+        case 3:
+          y = a4 | b4;
+          break;
+        case 4:
+          y = a4 ^ b4;
+          break;
+        case 5:
+          y = mask(~a4, 4);
+          break;
+        case 6:
+          y = mask(a4 << 1, 4);
+          carry = (a4 >> 3) & 1;
+          break;
+        case 7:
+          y = a4 >> 1;
+          carry = a4 & 1;
+          break;
+      }
+      return { y: mask(y, 4), carry, zero: y === 0 ? 1 : 0 };
     }
     case 'split4': {
       const input = mask(inputs.d ?? 0, 4);
@@ -383,6 +437,14 @@ export function stepClocks(circuit: Circuit, state: SimState): SimResult {
         rt.q = 0;
       } else if (clock && !previousClock && load) {
         rt.q = mask(pins[pinKey(part.id, 'd')] ?? 0, 4);
+      }
+    } else if (part.kind === 'counter4') {
+      const clear = pins[pinKey(part.id, 'clr')] ?? 0;
+      const enable = pins[pinKey(part.id, 'en')] ?? 0;
+      if (clear) {
+        rt.q = 0;
+      } else if (clock && !previousClock && enable) {
+        rt.q = mask((rt.q ?? 0) + 1, 4);
       }
     }
     rt.lastClk = clock;

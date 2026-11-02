@@ -2512,8 +2512,10 @@ kbd {
 .kind-in { color: #7be3bd; border-color: rgba(95, 214, 176, 0.25); }
 .kind-clk { color: #f6cc86; border-color: rgba(240, 184, 102, 0.25); }
 .kind-ff,
-.kind-reg { color: #c9b7ff; border-color: rgba(180, 157, 251, 0.25); }
+.kind-reg,
+.kind-cnt { color: #c9b7ff; border-color: rgba(180, 157, 251, 0.25); }
 .kind-out { color: #8fdcff; border-color: rgba(86, 200, 255, 0.24); }
+.kind-alu { color: #f6cc86; border-color: rgba(240, 184, 102, 0.25); }
 
 .signal-name {
   font-family: var(--font-mono);

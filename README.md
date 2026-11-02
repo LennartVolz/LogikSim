@@ -11,7 +11,7 @@ Ein browserbasierter Logiksimulator für Digitaltechnik und Rechenarchitektur. S
 - Bauteile per Drag-and-drop oder Klick platzieren, verschieben, löschen
 - Leitungen durch Anklicken zweier Anschlüsse verbinden, inklusive Rückkopplungen
 - Undo/Redo, automatische lokale Speicherung, JSON-Import und -Export
-- Sechs vorgefertigte Beispielschaltungen
+- Neun vorgefertigte Beispielschaltungen
 
 **Bauteile**
 
@@ -19,7 +19,8 @@ Ein browserbasierter Logiksimulator für Digitaltechnik und Rechenarchitektur. S
 - Ein-/Ausgänge, Konstanten 0/1, Taktgeber
 - D-Flip-Flop mit asynchronem Reset
 - 4-Bit-Register mit Load, Takt und asynchronem Clear
-- 4-Bit-Inkrementer, 4-Bit-Splitter, 4-Bit-Merger
+- 4-Bit-Binärzähler mit Enable, asynchronem Clear und Terminal Count
+- 4-Bit-Inkrementer, 2:1-Multiplexer (1 und 4 Bit), 4-Bit-ALU, 4-Bit-Splitter, 4-Bit-Merger
 - Ein- und Ausgänge sind als 1-, 4- oder 8-Bit-Bus konfigurierbar
 
 **Simulation**
@@ -126,12 +127,12 @@ Beim Import werden unbekannte Bauteile abgelehnt und ungültige Leitungen übers
 
 ## Nächste Ausbaustufen
 
-Der aktuelle Stand entspricht dem empfohlenen ersten Release und Teilen von MVP 2. Noch nicht enthalten:
+Der aktuelle Stand entspricht MVP 1 und MVP 2: Editor, Simulation, Analyse, Lernmodus, Zähler, Multiplexer und ALU. Noch nicht enthalten:
 
-- Zähler und Modulo-Zähler
-- Multiplexer/Demultiplexer als fertige Bauteile (als Gatterschaltung bereits möglich)
+- Demultiplexer und Modulo-Zähler
+- Zähler mit parallelem Load
 - Subcircuits und hierarchische Bausteine
-- ALU, RAM, ROM und CPU-Modell
+- RAM, ROM und CPU-Modell
 - Verzögerungsmodell und Timing-Analyse mit echten Gatterlaufzeiten
 - Debugger mit Breakpoints
 - Kollaboration oder Server-Speicherung

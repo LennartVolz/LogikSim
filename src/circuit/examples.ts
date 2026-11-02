@@ -125,6 +125,54 @@ function multiplexer(): Circuit {
   return b.build();
 }
 
+function counterExample(): Circuit {
+  const b = new CircuitBuilder('4-Bit-Binärzähler');
+  const clk = b.add('clock', 70, 154);
+  const enable = b.add('const1', 70, 210, { label: 'EN' });
+  const clear = b.add('input', 70, 290, { label: 'CLR', value: 0 });
+  const counter = b.add('counter4', 360, 150);
+  const q = b.add('output', 680, 170, { label: 'Q', bits: 4 });
+  const tc = b.add('output', 680, 226, { label: 'TC' });
+  b.link(clk, 'out', counter, 'clk');
+  b.link(enable, 'out', counter, 'en');
+  b.link(clear, 'out', counter, 'clr');
+  b.link(counter, 'q', q, 'in');
+  b.link(counter, 'tc', tc, 'in');
+  return b.build();
+}
+
+function mux4Example(): Circuit {
+  const b = new CircuitBuilder('4-Bit-Multiplexer');
+  const a = b.add('input', 70, 100, { label: 'A', bits: 4, value: 10 });
+  const bb = b.add('input', 70, 220, { label: 'B', bits: 4, value: 5 });
+  const s = b.add('input', 70, 360, { label: 'S', value: 1 });
+  const mux = b.add('mux4', 360, 180);
+  const y = b.add('output', 680, 204, { label: 'Y', bits: 4 });
+  b.link(a, 'out', mux, 'a');
+  b.link(bb, 'out', mux, 'b');
+  b.link(s, 'out', mux, 's');
+  b.link(mux, 'y', y, 'in');
+  return b.build();
+}
+
+function aluExample(): Circuit {
+  const b = new CircuitBuilder('4-Bit-ALU');
+  const a = b.add('input', 70, 90, { label: 'A', bits: 4, value: 9 });
+  const bb = b.add('input', 70, 220, { label: 'B', bits: 4, value: 3 });
+  const op = b.add('input', 70, 350, { label: 'OP', bits: 4, value: 0 });
+  const alu = b.add('alu4', 400, 160);
+  const y = b.add('output', 730, 180, { label: 'Y', bits: 4 });
+  const carry = b.add('output', 730, 240, { label: 'Carry' });
+  const zero = b.add('output', 730, 300, { label: 'Zero' });
+  b.link(a, 'out', alu, 'a');
+  b.link(bb, 'out', alu, 'b');
+  b.link(op, 'out', alu, 'op');
+  b.link(alu, 'y', y, 'in');
+  b.link(alu, 'carry', carry, 'in');
+  b.link(alu, 'zero', zero, 'in');
+  return b.build();
+}
+
 export const EXAMPLES: Example[] = [
   {
     id: 'half-adder',
@@ -165,6 +213,27 @@ export const EXAMPLES: Example[] = [
     name: '2:1-Multiplexer',
     description: 'Der Steuereingang S wählt, ob A oder B auf den Ausgang geschaltet wird.',
     circuit: multiplexer(),
+  },
+  {
+    id: 'counter4',
+    name: '4-Bit-Zähler',
+    description: 'Ein Zähler mit Enable, asynchronem Clear und Terminal Count. Jede steigende Taktflanke zählt weiter.',
+    hint: 'CLR auf 1 setzen setzt den Zähler sofort auf 0 zurück. TC wird bei 15 aktiv.',
+    circuit: counterExample(),
+  },
+  {
+    id: 'mux4',
+    name: '4-Bit-Multiplexer',
+    description: 'Der fertige 4-Bit-Multiplexer wählt mit S zwischen den Bussen A und B.',
+    hint: 'Schalte S um: Der Ausgang springt zwischen dem Wert von A und B.',
+    circuit: mux4Example(),
+  },
+  {
+    id: 'alu4',
+    name: '4-Bit-ALU',
+    description: 'Die ALU verrechnet A und B. OP wählt zwischen ADD, SUB, AND, OR, XOR, NOT, SHL und SHR.',
+    hint: 'Erhöhe OP schrittweise, um die acht Operationen und die Flags C/Z zu beobachten.',
+    circuit: aluExample(),
   },
 ];
 

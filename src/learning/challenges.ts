@@ -1,4 +1,4 @@
-import type { Circuit, Part } from '../engine/types';
+import type { Circuit, Part, PartKind } from '../engine/types';
 import { inputParts, outputParts, evaluateCombination, readOutputPinValue, bitsOf } from '../engine/analysis';
 import { simulate } from '../engine/simulate';
 import { getPin } from '../engine/parts';
@@ -90,6 +90,16 @@ function fromPinWidth(part: Part, pinId: string): number | null {
   return getPin(part, pinId)?.width ?? null;
 }
 
+const XOR_GATE_KINDS = new Set<PartKind>([
+  'input',
+  'output',
+  'and',
+  'or',
+  'not',
+  'nand',
+  'nor',
+]);
+
 function checkBinaryTruthTable(circuit: Circuit): ChallengeResult {
   const inputs = inputParts(circuit);
   const outputs = outputParts(circuit);
@@ -113,6 +123,14 @@ function checkBinaryTruthTable(circuit: Circuit): ChallengeResult {
       passed: false,
       summary: 'XOR und XNOR sind in dieser Aufgabe gesperrt.',
       details: ['Baue die Funktion ausschließlich aus AND, OR, NOT, NAND oder NOR.'],
+    };
+  }
+  const advanced = circuit.parts.find((part) => !XOR_GATE_KINDS.has(part.kind));
+  if (advanced) {
+    return {
+      passed: false,
+      summary: 'Für diese Aufgabe sind nur Grundgatter erlaubt.',
+      details: ['Verwende ausschließlich AND, OR, NOT, NAND oder NOR.'],
     };
   }
   const labels = inputs.map((part) => part.label?.trim() || 'Eingang');
@@ -237,10 +255,10 @@ function checkIncrementer(circuit: Circuit): ChallengeResult {
       details: [],
     };
   }
-  if (circuit.parts.some((part) => part.kind === 'inc4')) {
+  if (circuit.parts.some((part) => part.kind === 'inc4' || part.kind === 'alu4')) {
     return {
       passed: false,
-      summary: 'Der fertige 4-Bit-Inkrementer-Baustein ist hier gesperrt.',
+      summary: 'Fertige Additions- und Inkrementierbausteine sind hier gesperrt.',
       details: ['Baue die Funktion aus Gattern, Splittern und Mergern selbst auf.'],
     };
   }
