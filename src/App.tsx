@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CircuitCanvas } from './components/canvas/CircuitCanvas';
 import { Toolbar } from './components/Toolbar';
 import { Palette } from './components/Palette';
@@ -7,6 +7,8 @@ import { AnalysisPanel } from './components/AnalysisPanel';
 import { Icon } from './components/Icon';
 import { useCircuitStore, persistCircuit } from './store/useCircuitStore';
 import { downloadProject } from './storage/project';
+
+type MobilePanel = 'palette' | 'inspector' | null;
 
 function Toast() {
   const notice = useCircuitStore((state) => state.notice);
@@ -39,6 +41,36 @@ export default function App() {
   const circuit = useCircuitStore((state) => state.circuit);
   const simRunning = useCircuitStore((state) => state.simRunning);
   const speed = useCircuitStore((state) => state.speed);
+  const requestFit = useCircuitStore((state) => state.requestFit);
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
+  const closeMobilePanel = useCallback(() => setMobilePanel(null), []);
+
+  const toggleMobilePanel = (panel: Exclude<MobilePanel, null>) => {
+    setMobilePanel((current) => (current === panel ? null : panel));
+  };
+
+  useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobilePanel(null);
+    };
+    const desktop = window.matchMedia('(min-width: 981px)');
+    const tablet = window.matchMedia('(min-width: 721px)');
+    const syncPanel = () => {
+      setMobilePanel((panel) => {
+        if (panel === 'inspector' && desktop.matches) return null;
+        if (panel === 'palette' && tablet.matches) return null;
+        return panel;
+      });
+    };
+    window.addEventListener('keydown', onEscape);
+    desktop.addEventListener('change', syncPanel);
+    tablet.addEventListener('change', syncPanel);
+    return () => {
+      window.removeEventListener('keydown', onEscape);
+      desktop.removeEventListener('change', syncPanel);
+      tablet.removeEventListener('change', syncPanel);
+    };
+  }, []);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => persistCircuit(circuit), 250);
@@ -113,14 +145,55 @@ export default function App() {
   return (
     <div className="app-shell">
       <Toolbar />
-      <div className="workspace">
-        <Palette />
+      <div className="mobile-touchbar" role="toolbar" aria-label="Touch-Werkzeuge">
+        <button
+          type="button"
+          className={`touchbar-btn touchbar-palette ${mobilePanel === 'palette' ? 'active' : ''}`}
+          aria-expanded={mobilePanel === 'palette'}
+          aria-controls="palette-panel"
+          onClick={() => toggleMobilePanel('palette')}
+        >
+          <Icon name="blocks" size={17} />
+          <span>Bauteile</span>
+        </button>
+        <button
+          type="button"
+          className="touchbar-btn"
+          onClick={() => {
+            setMobilePanel(null);
+            requestFit();
+          }}
+        >
+          <Icon name="fit" size={17} />
+          <span>Einpassen</span>
+        </button>
+        <button
+          type="button"
+          className={`touchbar-btn ${mobilePanel === 'inspector' ? 'active' : ''}`}
+          aria-expanded={mobilePanel === 'inspector'}
+          aria-controls="inspector-panel"
+          onClick={() => toggleMobilePanel('inspector')}
+        >
+          <Icon name="sliders" size={17} />
+          <span>Eigenschaften</span>
+        </button>
+      </div>
+      <div className={`workspace ${mobilePanel ? `mobile-panel-${mobilePanel}` : ''}`}>
+        <Palette onPick={closeMobilePanel} />
         <main className="editor-column">
           <CircuitCanvas />
           <AnalysisPanel />
         </main>
         <Inspector />
       </div>
+      {mobilePanel && (
+        <button
+          type="button"
+          className="mobile-scrim"
+          aria-label="Panel schließen"
+          onClick={closeMobilePanel}
+        />
+      )}
       <Toast />
     </div>
   );
